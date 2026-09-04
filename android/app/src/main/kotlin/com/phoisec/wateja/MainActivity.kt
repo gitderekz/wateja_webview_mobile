@@ -1,4 +1,4 @@
-package com.phoisec.wateja_webview_mobile
+package com.phoisec.wateja
 
 import io.flutter.embedding.android.FlutterActivity
 
