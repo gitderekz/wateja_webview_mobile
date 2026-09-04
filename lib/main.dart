@@ -1,29 +1,56 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:webview_all/webview_all.dart';
 
-const String _defaultDevUrl = 'http://localhost:5173';
 const String _defaultProdUrl = 'https://wateja.phoisec.com';
 
 String getConfiguredBaseUrl() {
-  const fromEnvironment = String.fromEnvironment(
+  const fromDefine = String.fromEnvironment(
     'WATEJA_BASE_URL',
     defaultValue: '',
   );
 
-  if (fromEnvironment.isNotEmpty) {
-    return fromEnvironment;
+  if (fromDefine.isNotEmpty) {
+    return fromDefine;
   }
 
-  final isProduction = bool.fromEnvironment(
-    'APP_ENV',
-    defaultValue: false,
-  );
+  final fromDotEnv = dotenv.env['WATEJA_BASE_URL'];
+  if (fromDotEnv != null && fromDotEnv.isNotEmpty) {
+    return fromDotEnv;
+  }
 
-  return isProduction ? _defaultProdUrl : _defaultDevUrl;
+  return _defaultProdUrl;
 }
 
-void main() {
+int getSplashDurationMs() {
+  const fromDefine = String.fromEnvironment(
+    'SPLASH_DURATION_MS',
+    defaultValue: '',
+  );
+
+  if (fromDefine.isNotEmpty) {
+    final parsed = int.tryParse(fromDefine);
+    if (parsed != null && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  final fromDotEnv = dotenv.env['SPLASH_DURATION_MS'];
+  if (fromDotEnv != null && fromDotEnv.isNotEmpty) {
+    final parsed = int.tryParse(fromDotEnv);
+    if (parsed != null && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return 1800;
+}
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: '.env');
   runApp(const WatejaApp());
 }
 
@@ -39,7 +66,80 @@ class WatejaApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1C7C54)),
         useMaterial3: true,
       ),
-      home: const WatejaWebViewScreen(),
+      home: const SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final splashMs = getSplashDurationMs();
+    Timer(Duration(milliseconds: splashMs), () {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const WatejaWebViewScreen()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E3B2E),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: const Icon(
+                Icons.shopping_bag_rounded,
+                size: 56,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Wateja',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Loading marketplace...',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(
+              width: 160,
+              child: LinearProgressIndicator(
+                backgroundColor: Colors.white24,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
